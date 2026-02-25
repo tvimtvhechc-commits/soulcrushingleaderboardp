@@ -2,11 +2,17 @@ import os
 import requests
 
 def get_data(r):
-    # Updated to your new Spreadsheet ID
+    # Your official Spreadsheet ID
     spreadsheet_id = "1Mc9dVP31CmnEk5VRMalF7CicWBWbLncsHa6HLYYEiW0"
-    api_key = os.getenv('GOOGLE_SHEETS_API_KEY')
     
-    url = f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/{r}?key={api_key}"
+    # Since your tab is named 'comps', we use it here.
+    # We keep 'r' just in case other parts of your app send a specific range.
+    # But if r is just 'Sheet1', this logic ensures it looks at 'comps' instead.
+    tab_name = "comps"
+    range_to_fetch = r.replace("Sheet1", tab_name) if "Sheet1" in r else f"{tab_name}!A:C"
+    
+    api_key = os.getenv('GOOGLE_SHEETS_API_KEY')
+    url = f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/{range_to_fetch}?key={api_key}"
     
     response = requests.get(url).json()
     values = response.get("values", [])
@@ -21,8 +27,8 @@ def get_data(r):
         item = {}
         for i, header in enumerate(headers):
             val = row[i] if i < len(row) else ""
+            # IMPORTANT: This matches the 'completions' header in C1
             if header.lower() == "completions":
-                # Keeps the logic that turns "1,2,3" into [1, 2, 3]
                 item[header] = [int(x) for x in val.split(",") if x] if val else []
             else:
                 item[header] = val
